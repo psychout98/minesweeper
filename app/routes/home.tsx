@@ -24,9 +24,10 @@ const COLORS = [
 
 export default function Home() {
 
-  const [started, updateStarted] = useImmer<boolean>(false)
+  const [started, updateStarted] = useImmer<boolean>(false);
   const [board, updateBoard] = useImmer<Space[][]>(getEmptyBoard(30, 16));
   const [flags, updateFlags] = useImmer<number>(99);
+  const [flagging, updateFlagging] = useImmer<boolean>(false);
 
   const revealSpace = (space: Space) => {
     if (!started) {
@@ -59,8 +60,8 @@ export default function Home() {
 
   const gridSpace = (space: Space) => {
     return space.hidden ? 
-    <span className="flex flex-col w-[30px] h-[30px] bg-sky-200 border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center"
-      onClick={() => space.flagged ? null : revealSpace(space)} 
+    <span className="flex w-[30px] h-[30px] bg-sky-200 border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center"
+      onClick={() => flagging ? flagSpace(space) : space.flagged ? null : revealSpace(space)} 
       onContextMenu={(e) => {
           e.preventDefault();
           flagSpace(space);
@@ -70,7 +71,7 @@ export default function Home() {
         { space.flagged ? <FaFlag color="red"/> : undefined }
     </span>
     :
-    <span className={`flex flex-col w-[30px] h-[30px] bg-gray-200 border-1 border-gray-400 items-center justify-center text-center font-extrabold ${COLORS[space.value]}`} key={space.x}>
+    <span className={`flex w-[30px] h-[30px] bg-gray-200 border-1 border-gray-400 items-center justify-center text-center font-extrabold ${COLORS[space.value]}`} key={space.x}>
       {
         space.value === 0 ? "" : space.value === -1 ? <FaBomb color="black"/> : space.value
       }
@@ -85,8 +86,12 @@ export default function Home() {
         </div>
       })
     }
-    <div className="flex">
-      {flags}
+    <div className="flex flex-row m-3 gap-3">
+      <span className="flex w-[50px] h-[50px] text-3xl text-align-center justify-center items-center">{flags}</span>
+      <span className="flex w-[50px] h-[50px] bg-slate-200 border-4 border-t-slate-100 border-l-slate-100 border-r-slate-400 border-b-slate-500 items-center justify-center"
+        onClick={() => updateFlagging(!flagging)}>
+        <FaFlag color={flagging ? "red" : "gray"}/>
+      </span>
     </div>
   </div>
 }
