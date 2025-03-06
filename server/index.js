@@ -210,6 +210,7 @@ const home = withComponentProps(function Home() {
   const [started, updateStarted] = useImmer(false);
   const [board, updateBoard] = useImmer(getEmptyBoard(30, 16));
   const [flags, updateFlags] = useImmer(99);
+  const [flagging, updateFlagging] = useImmer(false);
   const revealSpace = (space) => {
     if (!started) {
       updateBoard((draft) => {
@@ -246,8 +247,8 @@ const home = withComponentProps(function Home() {
   };
   const gridSpace = (space) => {
     return space.hidden ? /* @__PURE__ */ jsx("span", {
-      className: "flex flex-col w-[30px] h-[30px] bg-sky-200 border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center",
-      onClick: () => space.flagged ? null : revealSpace(space),
+      className: "flex w-[30px] h-[30px] bg-sky-200 border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center",
+      onClick: () => flagging ? flagSpace(space) : space.flagged ? null : revealSpace(space),
       onContextMenu: (e) => {
         e.preventDefault();
         flagSpace(space);
@@ -256,7 +257,7 @@ const home = withComponentProps(function Home() {
         color: "red"
       }) : void 0
     }, space.x) : /* @__PURE__ */ jsx("span", {
-      className: `flex flex-col w-[30px] h-[30px] bg-gray-200 border-1 border-gray-400 items-center justify-center text-center font-extrabold ${COLORS[space.value]}`,
+      className: `flex w-[30px] h-[30px] bg-gray-200 border-1 border-gray-400 items-center justify-center text-center font-extrabold ${COLORS[space.value]}`,
       children: space.value === 0 ? "" : space.value === -1 ? /* @__PURE__ */ jsx(FaBomb, {
         color: "black"
       }) : space.value
@@ -269,9 +270,18 @@ const home = withComponentProps(function Home() {
         className: "flex flex-row",
         children: row.map(gridSpace)
       }, index);
-    }), /* @__PURE__ */ jsx("div", {
-      className: "flex",
-      children: flags
+    }), /* @__PURE__ */ jsxs("div", {
+      className: "flex flex-row m-3 gap-3",
+      children: [/* @__PURE__ */ jsx("span", {
+        className: "flex w-[50px] h-[50px] text-3xl text-align-center justify-center items-center",
+        children: flags
+      }), /* @__PURE__ */ jsx("span", {
+        className: "flex w-[50px] h-[50px] bg-slate-200 border-4 border-t-slate-100 border-l-slate-100 border-r-slate-400 border-b-slate-500 items-center justify-center",
+        onClick: () => updateFlagging(!flagging),
+        children: /* @__PURE__ */ jsx(FaFlag, {
+          color: flagging ? "red" : "gray"
+        })
+      })]
     })]
   });
 });
@@ -280,7 +290,7 @@ const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   default: home,
   meta
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/assets/entry.client-BS6-ceg-.js", "imports": ["/assets/chunk-HA7DTUK3-D_qS_Rpe.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": true, "module": "/assets/root-DhTSbGPE.js", "imports": ["/assets/chunk-HA7DTUK3-D_qS_Rpe.js", "/assets/with-props-Ca_k7Ylp.js"], "css": ["/assets/root-8rAjB-1k.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/home-SBCvLnrr.js", "imports": ["/assets/with-props-Ca_k7Ylp.js", "/assets/chunk-HA7DTUK3-D_qS_Rpe.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "/assets/manifest-06020817.js", "version": "06020817" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-BS6-ceg-.js", "imports": ["/assets/chunk-HA7DTUK3-D_qS_Rpe.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": true, "module": "/assets/root-BKiHsio5.js", "imports": ["/assets/chunk-HA7DTUK3-D_qS_Rpe.js", "/assets/with-props-Ca_k7Ylp.js"], "css": ["/assets/root-CUpI9JaD.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/home-CZWNzq_k.js", "imports": ["/assets/with-props-Ca_k7Ylp.js", "/assets/chunk-HA7DTUK3-D_qS_Rpe.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "/assets/manifest-84ae7908.js", "version": "84ae7908" };
 const assetsBuildDirectory = "build/client";
 const basename = "/";
 const future = { "unstable_optimizeDeps": false, "unstable_splitRouteModules": false, "unstable_viteEnvironmentApi": false };
