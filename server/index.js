@@ -208,14 +208,14 @@ const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   default: home,
   meta
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "./assets/entry.client-BFhZpkrh.js", "imports": ["./assets/chunk-HA7DTUK3-DItZKCSJ.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": true, "module": "./assets/root--DtV-gvq.js", "imports": ["./assets/chunk-HA7DTUK3-DItZKCSJ.js", "./assets/with-props-Db1jVSdq.js"], "css": ["./assets/root-fVoLIL_2.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "./assets/home-4kmdE4Pi.js", "imports": ["./assets/with-props-Db1jVSdq.js", "./assets/chunk-HA7DTUK3-DItZKCSJ.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "./assets/manifest-1caf0acf.js", "version": "1caf0acf" };
+const serverManifest = { "entry": { "module": "/minesweeperassets/entry.client-BFhZpkrh.js", "imports": ["/minesweeperassets/chunk-HA7DTUK3-DItZKCSJ.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": true, "module": "/minesweeperassets/root--DtV-gvq.js", "imports": ["/minesweeperassets/chunk-HA7DTUK3-DItZKCSJ.js", "/minesweeperassets/with-props-Db1jVSdq.js"], "css": ["/minesweeperassets/root-fVoLIL_2.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/minesweeperassets/home-4kmdE4Pi.js", "imports": ["/minesweeperassets/with-props-Db1jVSdq.js", "/minesweeperassets/chunk-HA7DTUK3-DItZKCSJ.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "/minesweeperassets/manifest-df005c4f.js", "version": "df005c4f" };
 const assetsBuildDirectory = "build/client";
 const basename = "/";
 const future = { "unstable_optimizeDeps": false, "unstable_splitRouteModules": false, "unstable_viteEnvironmentApi": false };
 const ssr = true;
 const isSpaMode = false;
 const prerender = [];
-const publicPath = "./";
+const publicPath = "/minesweeper";
 const entry = { module: entryServer };
 const routes = {
   "root": {
