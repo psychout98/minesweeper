@@ -4,7 +4,9 @@ import { createReadableStreamFromReadable } from "@react-router/node";
 import { ServerRouter, useMatches, useActionData, useLoaderData, useParams, useRouteError, Meta, Links, ScrollRestoration, Scripts, Outlet, isRouteErrorResponse } from "react-router";
 import { isbot } from "isbot";
 import { renderToPipeableStream } from "react-dom/server";
-import { createElement, useState, useEffect } from "react";
+import { createElement } from "react";
+import { useImmer } from "use-immer";
+import { FaFlag, FaBomb } from "react-icons/fa";
 const streamTimeout = 5e3;
 function handleRequest(request, responseStatusCode, responseHeaders, routerContext, loadContext) {
   return new Promise((resolve, reject) => {
@@ -125,55 +127,75 @@ const route0 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   default: root,
   links
 }, Symbol.toStringTag, { value: "Module" }));
-const buildBoard = (width, height, bombs) => {
-  const board = getEmptyBoard(width, height);
-  fillBoardWithBombs(board, width, height, bombs);
-  numberBoard(board, width, height);
-  return board;
+const buildMinefield = (board, bombs, firstSpace) => {
+  fillBoardWithBombs(board, bombs, firstSpace);
+  numberBoard(board);
 };
 const getEmptyBoard = (width, height) => {
   const board = [];
   for (var i = 0; i < height; i++) {
     const row = [];
     for (var j = 0; j < width; j++) {
-      row.push(0);
+      row.push({ y: i, x: j, value: 0, hidden: true, flagged: false });
     }
     board.push(row);
   }
   return board;
 };
-const fillBoardWithBombs = (board, width, height, bombs) => {
+const fillBoardWithBombs = (board, bombs, firstSpace) => {
   for (var i = 0; i < bombs; i++) {
     let foundSpot = false;
     while (!foundSpot) {
-      let row = Math.floor(Math.random() * height);
-      let col = Math.floor(Math.random() * width);
-      if (board[row][col] === 0) {
-        board[row][col] = -1;
+      let row = Math.floor(Math.random() * board.length);
+      let col = Math.floor(Math.random() * board[0].length);
+      if (board[row][col].value === 0 && !nearFirstSpace(row, col, firstSpace)) {
+        board[row][col].value = -1;
         foundSpot = true;
       }
     }
   }
 };
-const numberBoard = (board, width, height) => {
-  for (var i = 0; i < height; i++) {
-    for (var j = 0; j < width; j++) {
-      if (board[i][j] === 0) {
-        board[i][j] = getNearbyBombs(board, width, height, i, j);
+const BOX = [-1, 0, 1];
+const nearFirstSpace = (row, col, firstSpace) => {
+  for (const y of BOX) {
+    for (const x of BOX) {
+      if (row === firstSpace.y + y && col === firstSpace.x + x) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+const numberBoard = (board) => {
+  for (var i = 0; i < board.length; i++) {
+    for (var j = 0; j < board[0].length; j++) {
+      if (board[i][j].value === 0) {
+        board[i][j].value = getNearbyBombs(board, i, j);
       }
     }
   }
 };
-const BOX = [-1, 0, 1];
-const getNearbyBombs = (board, width, height, row, col) => {
+const getNearbyBombs = (board, row, col) => {
   return BOX.map((y) => {
     return BOX.map((x) => {
-      if (row + y > 0 && row + y < height && col + x > 0 && col + x < width) {
-        return board[row + y][col + x];
+      if (row + y >= 0 && row + y < board.length && col + x >= 0 && col + x < board[0].length) {
+        return board[row + y][col + x].value;
       }
       return 0;
     }).reduce((partialSum, a) => partialSum + (a === -1 ? 1 : 0), 0);
   }).reduce((partialSum, a) => partialSum + a, 0);
+};
+const cascadeReveal = (board, row, col) => {
+  board[row][col].hidden = false;
+  if (board[row][col].value === 0) {
+    BOX.forEach((y) => {
+      BOX.forEach((x) => {
+        if (row + y >= 0 && row + y < board.length && col + x >= 0 && col + x < board[0].length && board[row + y][col + x].hidden) {
+          cascadeReveal(board, row + y, col + x);
+        }
+      });
+    });
+  }
 };
 function meta({}) {
   return [{
@@ -183,24 +205,74 @@ function meta({}) {
     content: "This game will make you shit your pants"
   }];
 }
+const COLORS = ["", "text-blue-500", "text-green-500", "text-red-500", "text-indigo-500", "text-orange-500", "text-emerald-700", "text-pink-500", "text-black"];
 const home = withComponentProps(function Home() {
-  const [board, setBoard] = useState();
-  useEffect(() => {
-    setBoard(buildBoard(30, 16, 99));
-  }, []);
-  return /* @__PURE__ */ jsx("div", {
+  const [started, updateStarted] = useImmer(false);
+  const [board, updateBoard] = useImmer(getEmptyBoard(30, 16));
+  const [flags, updateFlags] = useImmer(99);
+  const revealSpace = (space) => {
+    if (!started) {
+      updateBoard((draft) => {
+        buildMinefield(draft, flags, space);
+      });
+      updateStarted(true);
+    }
+    if (space.value === -1) {
+      revealAll();
+    } else if (space.value === 0) {
+      updateBoard((draft) => {
+        cascadeReveal(draft, space.y, space.x);
+      });
+    } else {
+      updateBoard((draft) => {
+        draft[space.y][space.x].hidden = false;
+      });
+    }
+  };
+  const flagSpace = (space) => {
+    updateBoard((draft) => {
+      draft[space.y][space.x].flagged = !space.flagged;
+    });
+    updateFlags((draft) => draft + (space.flagged ? 1 : -1));
+  };
+  const revealAll = () => {
+    updateBoard((draft) => {
+      draft.forEach((row) => row.forEach((col) => {
+        if (col.hidden && !col.flagged) {
+          col.hidden = false;
+        }
+      }));
+    });
+  };
+  const gridSpace = (space) => {
+    return space.hidden ? /* @__PURE__ */ jsx("span", {
+      className: "flex flex-col w-[30px] h-[30px] bg-sky-200 border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center",
+      onClick: () => space.flagged ? null : revealSpace(space),
+      onContextMenu: (e) => {
+        e.preventDefault();
+        flagSpace(space);
+      },
+      children: space.flagged ? /* @__PURE__ */ jsx(FaFlag, {
+        color: "red"
+      }) : void 0
+    }, space.x) : /* @__PURE__ */ jsx("span", {
+      className: `flex flex-col w-[30px] h-[30px] bg-gray-200 border-1 border-gray-400 items-center justify-center text-center font-extrabold ${COLORS[space.value]}`,
+      children: space.value === 0 ? "" : space.value === -1 ? /* @__PURE__ */ jsx(FaBomb, {
+        color: "black"
+      }) : space.value
+    }, space.x);
+  };
+  return /* @__PURE__ */ jsxs("div", {
     className: "flex flex-col w-full h-full items-center justify-center",
-    children: board == null ? void 0 : board.map((row) => {
+    children: [board.map((row, index) => {
       return /* @__PURE__ */ jsx("div", {
         className: "flex flex-row",
-        children: row.map((space) => {
-          return /* @__PURE__ */ jsx("div", {
-            className: "flex flex-col w-[30px] h-[30px]",
-            children: space
-          });
-        })
-      });
-    })
+        children: row.map(gridSpace)
+      }, index);
+    }), /* @__PURE__ */ jsx("div", {
+      className: "flex",
+      children: flags
+    })]
   });
 });
 const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty({
@@ -208,14 +280,14 @@ const route1 = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProper
   default: home,
   meta
 }, Symbol.toStringTag, { value: "Module" }));
-const serverManifest = { "entry": { "module": "/minesweeper/assets/entry.client-BFhZpkrh.js", "imports": ["/minesweeper/assets/chunk-HA7DTUK3-DItZKCSJ.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": true, "module": "/minesweeper/assets/root--DtV-gvq.js", "imports": ["/minesweeper/assets/chunk-HA7DTUK3-DItZKCSJ.js", "/minesweeper/assets/with-props-Db1jVSdq.js"], "css": ["/minesweeper/assets/root-fVoLIL_2.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/minesweeper/assets/home-4kmdE4Pi.js", "imports": ["/minesweeper/assets/with-props-Db1jVSdq.js", "/minesweeper/assets/chunk-HA7DTUK3-DItZKCSJ.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "/minesweeper/assets/manifest-b8b72d55.js", "version": "b8b72d55" };
+const serverManifest = { "entry": { "module": "/assets/entry.client-BS6-ceg-.js", "imports": ["/assets/chunk-HA7DTUK3-D_qS_Rpe.js"], "css": [] }, "routes": { "root": { "id": "root", "parentId": void 0, "path": "", "index": void 0, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": true, "module": "/assets/root-DhTSbGPE.js", "imports": ["/assets/chunk-HA7DTUK3-D_qS_Rpe.js", "/assets/with-props-Ca_k7Ylp.js"], "css": ["/assets/root-8rAjB-1k.css"], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 }, "routes/home": { "id": "routes/home", "parentId": "root", "path": void 0, "index": true, "caseSensitive": void 0, "hasAction": false, "hasLoader": false, "hasClientAction": false, "hasClientLoader": false, "hasErrorBoundary": false, "module": "/assets/home-SBCvLnrr.js", "imports": ["/assets/with-props-Ca_k7Ylp.js", "/assets/chunk-HA7DTUK3-D_qS_Rpe.js"], "css": [], "clientActionModule": void 0, "clientLoaderModule": void 0, "hydrateFallbackModule": void 0 } }, "url": "/assets/manifest-06020817.js", "version": "06020817" };
 const assetsBuildDirectory = "build/client";
 const basename = "/";
 const future = { "unstable_optimizeDeps": false, "unstable_splitRouteModules": false, "unstable_viteEnvironmentApi": false };
 const ssr = true;
 const isSpaMode = false;
 const prerender = [];
-const publicPath = "/minesweeper/";
+const publicPath = "/";
 const entry = { module: entryServer };
 const routes = {
   "root": {
