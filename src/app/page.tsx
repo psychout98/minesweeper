@@ -7,13 +7,14 @@ import { useEffect } from "react";
 
 import { io } from "socket.io-client";
 
-// const socket = io('https://mineserver-57f48240957f.herokuapp.com/');
+const SOCKET_URL = 'https://mineserver-57f48240957f.herokuapp.com/';
+// const SOCKET_URL = 'http://localhost:3001';
 
-const socket = io('http://localhost:3001', {
+const socket = io(SOCKET_URL, {
+  path: '/socket',
   reconnectionDelay: 1000,
   reconnection: true,
   reconnectionAttempts: 10,
-  transports: ['websocket'],
   agent: false,
   upgrade: false,
   rejectUnauthorized: false
@@ -50,6 +51,11 @@ export default function Home() {
 
     socket.on('connect', onConnect);
     socket.on('disconnect', onDisconnect);
+    socket.on("connect_error", (err) => {
+      console.log(err.message);
+      console.log(err.stack);
+      console.log(err.name);
+    });
 
     return () => {
       socket.off('connect', onConnect);
