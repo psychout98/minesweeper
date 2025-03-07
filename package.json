@@ -7,6 +7,10 @@
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc"
+  }, 
+  "engines" : { 
+    "npm" : "10.2.4",
+    "node" : "v21.4.0"
   },
   "dependencies": {
     "@react-router/node": "^7.2.0",
