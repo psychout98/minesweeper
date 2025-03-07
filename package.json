@@ -2,19 +2,15 @@
   "name": "minesweeper",
   "private": true,
   "type": "module",
-  "homepage": "/",
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@react-router/node": "^7.2.0",
     "@react-router/serve": "^7.2.0",
-    "gh-pages": "^6.3.0",
     "immer": "^10.1.1",
     "isbot": "^5.1.17",
     "react": "^19.0.0",
