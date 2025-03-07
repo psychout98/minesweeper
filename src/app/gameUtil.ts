@@ -37,7 +37,7 @@ const fillBoardWithBombs = (board: Space[][], bombs: number, firstSpace: Space) 
     }
 }
 
-export const BOX = [-1, 0, 1];
+const BOX = [-1, 0, 1];
 
 const nearFirstSpace = (row: number, col: number, firstSpace: Space): boolean => {
     for (const y of BOX) {

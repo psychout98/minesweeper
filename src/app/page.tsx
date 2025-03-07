@@ -1,14 +1,23 @@
-import { useImmer } from "use-immer";
-import type { Route } from "./+types/home";
-import { BOX, buildMinefield, cascadeReveal, getBombs, getEmptyBoard, type Space } from "../gameUtil";
-import { FaFlag, FaBomb } from "react-icons/fa";
+"use client";
 
-export function meta({}: Route.MetaArgs) {
-  return [
-    { title: "Minesweeper by Diddy" },
-    { name: "description", content: "This game will make you shit your pants" },
-  ];
-}
+import { useImmer } from "use-immer";
+import { buildMinefield, cascadeReveal, getEmptyBoard, type Space } from "./gameUtil";
+import { FaFlag, FaBomb } from "react-icons/fa";
+import { useEffect } from "react";
+
+import { io } from "socket.io-client";
+
+// const socket = io('https://mineserver-57f48240957f.herokuapp.com/');
+
+const socket = io('http://localhost:3001', {
+  reconnectionDelay: 1000,
+  reconnection: true,
+  reconnectionAttempts: 10,
+  transports: ['websocket'],
+  agent: false,
+  upgrade: false,
+  rejectUnauthorized: false
+});
 
 const COLORS = [
   "",
@@ -28,6 +37,25 @@ export default function Home() {
   const [board, updateBoard] = useImmer<Space[][]>(getEmptyBoard(30, 16));
   const [flags, updateFlags] = useImmer<number>(99);
   const [flagging, updateFlagging] = useImmer<boolean>(false);
+  const [isConnected, updateIsConnected] = useImmer<boolean>(socket.connected);
+
+  useEffect(() => {
+    function onConnect() {
+      updateIsConnected(true);
+    }
+
+    function onDisconnect() {
+      updateIsConnected(false);
+    }
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+    };
+  }, []);
 
   const revealSpace = (space: Space) => {
     if (!started) {
@@ -78,7 +106,7 @@ export default function Home() {
     </span>
   }
 
-  return <div className="flex flex-col w-full h-full items-center justify-center">
+  return <div className="flex flex-col w-full h-full items-center justify-center mt-[100px]">
     {
       board.map((row: Space[], index: number) => {
         return <div className="flex flex-row" key={index}>
