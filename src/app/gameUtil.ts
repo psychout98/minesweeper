@@ -1,3 +1,9 @@
+export interface Board {
+    origin?: string,
+    started: boolean,
+    spaces: Space[][]
+}
+
 export interface Space {
     y: number,
     x: number,
@@ -6,9 +12,11 @@ export interface Space {
     flagged: boolean
 }
 
-export const buildMinefield = (board: Space[][], bombs: number, firstSpace: Space) => {
-    fillBoardWithBombs(board, bombs, firstSpace);
-    numberBoard(board);
+export const buildMinefield = (spaces: Space[][], bombs: number, firstSpace: Space): Space[][] => {
+    fillBoardWithBombs(spaces, bombs, firstSpace);
+    numberBoard(spaces);
+    cascadeReveal(spaces, firstSpace.y, firstSpace.x);
+    return spaces;
 }
 
 export const getEmptyBoard = (width: number, height: number): Space[][] => {
@@ -21,6 +29,15 @@ export const getEmptyBoard = (width: number, height: number): Space[][] => {
         board.push(row);
     }
     return board;
+}
+
+export const revealAll = (spaces: Space[][]): Space[][] => {
+    return spaces.map(row => row.map(space => {
+        return {
+            ...space,
+            hidden: false 
+        }
+    }));
 }
 
 const fillBoardWithBombs = (board: Space[][], bombs: number, firstSpace: Space) => {
@@ -73,8 +90,8 @@ const getNearbyBombs = (board: Space[][], row: number, col: number): number => {
     }).reduce((partialSum, a) => partialSum + a, 0);
 }
 
-export const getBombs = (board: Space[][]) => {
-    return board.map(row => row.map(col => (col.value === -1 ? 1 : col.flagged ? -1 : 0) as number)
+export const getFlags = (board: Space[][]) => {
+    return board.map(row => row.map(space => (space.value === -1 ? 1 : 0) + (space.flagged ? -1 : 0) as number)
     .reduce((partialSum, a) => partialSum + a, 0))
     .reduce((partialSum, a) => partialSum + a, 0);
 }
