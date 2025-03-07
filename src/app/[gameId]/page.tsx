@@ -3,7 +3,7 @@
 import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 
 import { io } from "socket.io-client";
 
@@ -44,7 +44,6 @@ export default function Home({ params }: { params: Promise<{ gameId: string }> }
   const { gameId } = use(params);
   const [roomId, setRoomId] = useState<number>();
   const [board, setBoard] = useState<Board>({ started: false, spaces: getEmptyBoard(30, 16) });
-  const [flags, setFlags] = useState<number>(99);
   const [flagging, setFlagging] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
   const [mice, setMice] = useState<{ [socketId: string]: Mouse }>({});
@@ -155,7 +154,7 @@ export default function Home({ params }: { params: Promise<{ gameId: string }> }
 
   const revealSpace = (space: Space) => {
     if (!board.started) {
-      setBoard({ started: true, spaces: buildMinefield(board.spaces, flags, space), origin: socket.id });
+      setBoard({ started: true, spaces: buildMinefield(board.spaces, 99, space), origin: socket.id });
     } else {
       if (space.value === -1) {
         setBoard({ started: true, spaces: revealAll(board.spaces), origin: socket.id })
