@@ -60,7 +60,7 @@ export default function Home() {
 
   const gridSpace = (space: Space) => {
     return space.hidden ? 
-    <span className="flex w-[30px] h-[30px] bg-sky-200 border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center"
+    <span className="flex w-[15px] h-[15px] md:w-[30px] md:h-[30px] bg-sky-200 border-2 md:border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center"
       onClick={() => flagging ? flagSpace(space) : space.flagged ? null : revealSpace(space)} 
       onContextMenu={(e) => {
           e.preventDefault();
@@ -71,7 +71,7 @@ export default function Home() {
         { space.flagged ? <FaFlag color="red"/> : undefined }
     </span>
     :
-    <span className={`flex w-[30px] h-[30px] bg-gray-200 border-1 border-gray-400 items-center justify-center text-center font-extrabold ${COLORS[space.value]}`} key={space.x}>
+    <span className={`flex w-[15px] h-[15px] md:w-[30px] md:h-[30px] bg-gray-200 border-1 border-gray-400 items-center justify-center text-center font-extrabold text-xs md:text-xl ${COLORS[space.value]}`} key={space.x}>
       {
         space.value === 0 ? "" : space.value === -1 ? <FaBomb color="black"/> : space.value
       }
