@@ -21,9 +21,9 @@ export const buildMinefield = (spaces: Space[][], bombs: number, firstSpace: Spa
 
 export const getEmptyBoard = (width: number, height: number): Space[][] => {
     const board: Space[][] = [];
-    for (var i=0; i<height; i++) {
+    for (let i=0; i<height; i++) {
         const row: Space[] = [];
-        for (var j=0; j<width; j++) {
+        for (let j=0; j<width; j++) {
             row.push({y: i, x: j, value: 0, hidden: true, flagged: false});
         }
         board.push(row);
@@ -41,11 +41,11 @@ export const revealAll = (spaces: Space[][]): Space[][] => {
 }
 
 const fillBoardWithBombs = (board: Space[][], bombs: number, firstSpace: Space) => {
-    for (var i=0; i<bombs; i++) {
+    for (let i=0; i<bombs; i++) {
         let foundSpot = false;
         while (!foundSpot) {
-            let row = Math.floor(Math.random() * board.length);
-            let col = Math.floor(Math.random() * board[0].length);
+            const row = Math.floor(Math.random() * board.length);
+            const col = Math.floor(Math.random() * board[0].length);
             if (board[row][col].value === 0 && !nearFirstSpace(row, col, firstSpace)) {
                 board[row][col].value = -1;
                 foundSpot = true;
@@ -69,8 +69,8 @@ const nearFirstSpace = (row: number, col: number, firstSpace: Space): boolean =>
 }
 
 const numberBoard = (board: Space[][]) => {
-    for (var i=0; i<board.length; i++) {
-        for (var j=0; j<board[0].length; j++) {
+    for (let i=0; i<board.length; i++) {
+        for (let j=0; j<board[0].length; j++) {
             if (board[i][j].value === 0) {
                 board[i][j].value = getNearbyBombs(board, i, j);
             }

@@ -126,7 +126,7 @@ export default function Home({ params }: { params: Promise<{ gameId: string }> }
 
       }
     }
-  }, [isConnected]);
+  }, [isConnected, gameId]);
 
   useEffect(() => {
 
@@ -150,7 +150,7 @@ export default function Home({ params }: { params: Promise<{ gameId: string }> }
       socket.off('userJoined', uploadBoard);
       socket.off('receiveBoard', receiveBoard);
     }
-  }, [board]);
+  }, [board, roomId]);
 
   const revealSpace = (space: Space) => {
     if (!board.started) {
