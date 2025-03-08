@@ -1,7 +1,7 @@
 "use client";
 
 import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved } from "../gameUtil";
-import { FaFlag, FaBomb, FaMousePointer, FaRetweet } from "react-icons/fa";
+import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
 import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
