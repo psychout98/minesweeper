@@ -229,6 +229,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
         revealSpace(selectedSpace.current);
       }
       selectedSpace.current = null;
+      navigator.vibrate(50);
     }
   }
 
