@@ -204,7 +204,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
         flagSpace(selectedSpace.current);
         resetSelection();
       }
-    }, 200);
+    }, 400);
     if (button === 2) {
       rightClick.current = true;
     }
@@ -229,7 +229,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
         selectedSpace.current = null;
         navigator.vibrate(200);
       }
-    }, 200);
+    }, 400);
   }
 
   const handleTouchUp = () => {
