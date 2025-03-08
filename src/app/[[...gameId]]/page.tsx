@@ -120,13 +120,13 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     };
   }, [mice]);
 
-  function navigateToRandom() {
-    axios.get('/randomId').then(({ data }) => {
-      router.push(`/${data}`);
-    });
-  }
-
   useEffect(() => {
+    function navigateToRandom() {
+      axios.get('/randomId').then(({ data }) => {
+        router.push(`/${data}`);
+      });
+    }
+
     if (isConnected) {
       if (gameId) {
         const numericId = Number.parseInt(gameId);
@@ -140,7 +140,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
         navigateToRandom();
       }
     }
-  }, [isConnected, gameId]);
+  }, [isConnected, gameId, router]);
 
   useEffect(() => {
 
