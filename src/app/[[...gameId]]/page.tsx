@@ -226,6 +226,8 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     <span className="flex w-[15px] h-[15px] lg:w-[30px] lg:h-[30px] bg-sky-200 border-2 lg:border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center"
       onMouseDown={(e) => handleMouseDown(space, e.button)}
       onMouseUp={() => handleMouseUp(space)}
+      onTouchStart={() => handleMouseDown(space, 0)}
+      onTouchEnd={() => handleMouseUp(space)}
       key={space.x}>
         { space.flagged ? <FaFlag color="red"/> : undefined }
     </span>
