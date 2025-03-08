@@ -192,10 +192,9 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     setBoard({ started: board.started, spaces, origin: socket.id });
   }
 
-  const cleanAction = () => {
+  const resetSelection = () => {
     selectedSpace.current = null;
     rightClick.current = false;
-    navigator.vibrate(200);
   }
 
   const handleMouseDown = (space: Space, button: number) => {
@@ -203,7 +202,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     setTimeout(() => {
       if (selectedSpace.current != null) {
         flagSpace(selectedSpace.current);
-        cleanAction();
+        resetSelection();
       }
     }, 200);
     if (button === 2) {
@@ -218,7 +217,30 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       } else {
         revealSpace(space);
       }
-      cleanAction();
+      resetSelection();
+    }
+  }
+
+  const handleTouchDown = (space: Space) => {
+    selectedSpace.current = space;
+    setTimeout(() => {
+      if (selectedSpace.current != null) {
+        flagSpace(selectedSpace.current);
+        selectedSpace.current = null;
+        navigator.vibrate(200);
+      }
+    }, 200);
+  }
+
+  const handleTouchUp = () => {
+    if (selectedSpace.current != null) {
+      if (flagging) {
+        flagSpace(selectedSpace.current);
+      } else {
+        revealSpace(selectedSpace.current);
+      }
+      selectedSpace.current = null;
+      navigator.vibrate(200);
     }
   }
 
@@ -227,7 +249,8 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     <span className="flex w-[15px] h-[15px] lg:w-[30px] lg:h-[30px] bg-sky-200 border-2 lg:border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center"
       onMouseDown={(e) => handleMouseDown(space, e.button)}
       onMouseUp={() => handleMouseUp(space)}
-      onTouchStart={() => handleMouseDown(space, 0)}
+      onTouchStart={() => handleTouchDown(space)}
+      onTouchEnd={() => handleTouchUp()}
       key={space.x}>
         { space.flagged ? <FaFlag color="red"/> : undefined }
     </span>
@@ -247,7 +270,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     <span className="center h-[50px] t-[50px] text-5xl text-align-center select-none">
       {winner ? "You are the big fat winner!" : ""}
     </span>
-    <div className="flex flex-col w-fit h-fit select-none" onContextMenu={(e) => e.preventDefault()}>
+    <div className="flex flex-col w-fit h-fit select-none" onContextMenu={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onTouchEnd={(e) => e.preventDefault()}>
       {
         board.spaces.map((row, index) => {
           return <div className="flex flex-row" key={index}>
