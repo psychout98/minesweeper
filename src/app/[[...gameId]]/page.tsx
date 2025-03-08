@@ -3,21 +3,26 @@
 import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { useEffect, useState, use } from "react";
-// import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import axios from "axios";
 
 import { io } from "socket.io-client";
 
-const SOCKET_URL = 'https://mineserver-57f48240957f.herokuapp.com/';
-// const SOCKET_URL = 'http://localhost:3001';
+const URL = 'https://mineserver-57f48240957f.herokuapp.com/';
+// const URL = 'http://localhost:3001';
 
-const socket = io(SOCKET_URL, {
+axios.defaults.baseURL = URL;
+axios.defaults.withCredentials = true;
+
+const socket = io(URL, {
   path: '/socket',
   reconnectionDelay: 1000,
   reconnection: true,
   reconnectionAttempts: 10,
   agent: false,
   upgrade: false,
-  rejectUnauthorized: false
+  rejectUnauthorized: false,
+  withCredentials: true
 });
 
 const COLORS = [
@@ -39,8 +44,9 @@ interface Mouse {
   color: string
 }
 
-export default function Home({ params }: { params: Promise<{ gameId: string }> }) {
+export default function Home({ params }: { params: Promise<{ gameId?: string }> }) {
 
+  const router = useRouter();
   const { gameId } = use(params);
   const [roomId, setRoomId] = useState<number>();
   const [board, setBoard] = useState<Board>({ started: false, spaces: getEmptyBoard(30, 16) });
@@ -114,16 +120,24 @@ export default function Home({ params }: { params: Promise<{ gameId: string }> }
     };
   }, [mice]);
 
+  function navigateToRandom() {
+    axios.get('/randomId').then(({ data }) => {
+      router.push(`/${data}`);
+    });
+  }
+
   useEffect(() => {
     if (isConnected) {
-
-      const numericId = Number.parseInt(gameId);
-
-      if (numericId && numericId > 999 && numericId < 10000) {
-        socket.emit('subscribe', [numericId]);
-        setRoomId(numericId);
+      if (gameId) {
+        const numericId = Number.parseInt(gameId);
+        if (numericId && numericId > 999 && numericId < 10000) {
+          socket.emit('subscribe', [numericId]);
+          setRoomId(numericId);
+        } else {
+          navigateToRandom();
+        }
       } else {
-
+        navigateToRandom();
       }
     }
   }, [isConnected, gameId]);
