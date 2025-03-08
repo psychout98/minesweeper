@@ -2,7 +2,7 @@
 
 import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -53,11 +53,12 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   const [flagging, setFlagging] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
   const [mice, setMice] = useState<{ [socketId: string]: Mouse }>({});
+  const selectedSpace = useRef<Space>(null);
+  const rightClick = useRef<boolean>(false);
 
   useEffect(() => {
 
     function onConnect() {
-      console.log(socket.id);
       setIsConnected(true);
     }
 
@@ -72,7 +73,6 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     socket.on("connect_error", (err) => {
       console.log(err.message);
       console.log(err.stack);
-      console.log(err.name);
     });
 
     return () => {
@@ -190,20 +190,45 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     setBoard({ started: board.started, spaces, origin: socket.id });
   }
 
+  const resetSelection = () => {
+    selectedSpace.current = null;
+    rightClick.current = false;
+  }
+
+  const handleMouseDown = (space: Space, button: number) => {
+    selectedSpace.current = space;
+    setTimeout(() => {
+      if (selectedSpace.current != null) {
+        flagSpace(selectedSpace.current);
+        resetSelection();
+      }
+    }, 200);
+    if (button === 2) {
+      rightClick.current = true;
+    }
+  }
+
+  const handleMouseUp = (space: Space) => {
+    if (space === selectedSpace.current) {
+      if (flagging || rightClick.current) {
+        flagSpace(space);
+      } else {
+        revealSpace(space);
+      }
+      resetSelection();
+    }
+  }
+
   const gridSpace = (space: Space) => {
     return space.hidden ? 
     <span className="flex w-[15px] h-[15px] lg:w-[30px] lg:h-[30px] bg-sky-200 border-2 lg:border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center"
-      onClick={() => flagging ? flagSpace(space) : space.flagged ? null : revealSpace(space)} 
-      onContextMenu={(e) => {
-          e.preventDefault();
-          flagSpace(space);
-        }
-      }
+      onMouseDown={(e) => handleMouseDown(space, e.button)}
+      onMouseUp={() => handleMouseUp(space)}
       key={space.x}>
         { space.flagged ? <FaFlag color="red"/> : undefined }
     </span>
     :
-    <span className={`flex w-[15px] h-[15px] lg:w-[30px] lg:h-[30px] bg-gray-200 border-1 border-gray-400 items-center justify-center text-center font-extrabold text-xs md:text-xl ${COLORS[space.value]}`} key={space.x}>
+    <span className={`flex w-[15px] h-[15px] lg:w-[30px] lg:h-[30px] bg-gray-200 border-1 border-gray-400 items-center justify-center text-center font-extrabold text-xs lg:text-xl ${COLORS[space.value]}`} key={space.x}>
       {
         space.value === 0 ? "" : space.value === -1 ? <FaBomb color="black"/> : space.value
       }
@@ -215,13 +240,15 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   }
 
   return <div className="flex flex-col w-full h-full items-center justify-center mt-[100px]">
-    {
-      board.spaces.map((row, index) => {
-        return <div className="flex flex-row" key={index}>
-          { row.map(gridSpace) }
-        </div>
-      })
-    }
+    <div className="flex flex-col w-fit h-fit select-none" onContextMenu={(e) => e.preventDefault()}>
+      {
+        board.spaces.map((row, index) => {
+          return <div className="flex flex-row" key={index}>
+            { row.map(gridSpace) }
+          </div>
+        })
+      }
+    </div>
     <div className="flex flex-row m-3 gap-3">
       <span className="flex w-[50px] h-[50px] text-3xl text-align-center justify-center items-center">{ getFlags(board.spaces) }</span>
       <span className="flex w-[50px] h-[50px] bg-slate-200 border-4 border-t-slate-100 border-l-slate-100 border-r-slate-400 border-b-slate-500 items-center justify-center"
