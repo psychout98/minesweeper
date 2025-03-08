@@ -1,7 +1,8 @@
 "use client";
 
-import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space } from "../gameUtil";
-import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
+import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved } from "../gameUtil";
+import { FaFlag, FaBomb, FaMousePointer, FaRetweet } from "react-icons/fa";
+import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
 import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
@@ -55,6 +56,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   const [mice, setMice] = useState<{ [socketId: string]: Mouse }>({});
   const selectedSpace = useRef<Space>(null);
   const rightClick = useRef<boolean>(false);
+  const winner = solved(board.spaces);
 
   useEffect(() => {
 
@@ -239,7 +241,10 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     setBoard({ started: false, spaces: getEmptyBoard(30, 16), origin: socket.id });
   }
 
-  return <div className="flex flex-col w-full h-full items-center justify-center mt-[100px]">
+  return <div className="flex flex-col w-full h-full items-center justify-center mt-[50px]">
+    <span className="center h-[50px] t-[50px] text-5xl text-align-center select-none">
+      {winner ? "You are the big fat winner!" : ""}
+    </span>
     <div className="flex flex-col w-fit h-fit select-none" onContextMenu={(e) => e.preventDefault()}>
       {
         board.spaces.map((row, index) => {
@@ -255,7 +260,15 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
         onClick={() => setFlagging(!flagging)}>
         <FaFlag color={flagging ? "red" : "gray"}/>
       </span>
-      <span className="flex w-[100px] h-[50px] text-1xl text-align-center justify-center items-center hover:underline select-none" onClick={newGame}>New Game</span>
+      <span className="flex w-[50px] h-[50px] bg-slate-200 border-4 border-t-slate-100 border-l-slate-100 border-r-slate-400 border-b-slate-500 items-center justify-center"
+        onClick={newGame}>
+          {
+            winner ? 
+            <BsEmojiSunglasses color="black" style={{ background: "yellow", borderRadius: "50%", width: "25px", height: "25px" }}/> 
+            : 
+            <BsEmojiSmile color="black" style={{ background: "yellow", borderRadius: "50%", width: "25px", height: "25px" }}/>
+          }
+      </span>
     </div>
     {
       Object.values(mice).map((mouse: Mouse) => {

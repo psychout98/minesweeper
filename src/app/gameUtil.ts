@@ -35,7 +35,7 @@ export const revealAll = (spaces: Space[][]): Space[][] => {
     return spaces.map(row => row.map(space => {
         return {
             ...space,
-            hidden: false 
+            hidden: false
         }
     }));
 }
@@ -109,4 +109,23 @@ export const cascadeReveal = (board: Space[][], row: number, col: number) => {
             });
         });
     }
+}
+
+export const solved = (board: Space[][]): boolean => {
+    for (let i=0; i<board.length; i++) {
+        for (let j=0; j<board[0].length; j++) {
+            if (board[i][j].hidden) {
+                if (board[i][j].value === -1) {
+                    if (!board[i][j].flagged) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else if (board[i][j].value === -1) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
