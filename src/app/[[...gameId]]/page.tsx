@@ -192,9 +192,10 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     setBoard({ started: board.started, spaces, origin: socket.id });
   }
 
-  const resetSelection = () => {
+  const cleanAction = () => {
     selectedSpace.current = null;
     rightClick.current = false;
+    navigator.vibrate(200);
   }
 
   const handleMouseDown = (space: Space, button: number) => {
@@ -202,7 +203,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     setTimeout(() => {
       if (selectedSpace.current != null) {
         flagSpace(selectedSpace.current);
-        resetSelection();
+        cleanAction();
       }
     }, 200);
     if (button === 2) {
@@ -217,29 +218,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       } else {
         revealSpace(space);
       }
-      resetSelection();
-    }
-  }
-
-  const handleTouchDown = (space: Space) => {
-    selectedSpace.current = space;
-    setTimeout(() => {
-      if (selectedSpace.current != null) {
-        flagSpace(selectedSpace.current);
-        selectedSpace.current = null;
-      }
-    }, 200);
-  }
-
-  const handleTouchUp = () => {
-    if (selectedSpace.current != null) {
-      if (flagging) {
-        flagSpace(selectedSpace.current);
-      } else {
-        revealSpace(selectedSpace.current);
-      }
-      selectedSpace.current = null;
-      navigator.vibrate(1000);
+      cleanAction();
     }
   }
 
@@ -248,8 +227,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     <span className="flex w-[15px] h-[15px] lg:w-[30px] lg:h-[30px] bg-sky-200 border-2 lg:border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center"
       onMouseDown={(e) => handleMouseDown(space, e.button)}
       onMouseUp={() => handleMouseUp(space)}
-      onTouchStart={() => handleTouchDown(space)}
-      onTouchEnd={() => handleTouchUp()}
+      onTouchStart={() => handleMouseDown(space, 0)}
       key={space.x}>
         { space.flagged ? <FaFlag color="red"/> : undefined }
     </span>
