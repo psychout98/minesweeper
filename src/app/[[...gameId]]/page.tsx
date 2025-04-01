@@ -3,7 +3,7 @@
 import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved, compareSpaces } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use, useRef, useCallback, useOptimistic } from "react";
+import { useEffect, useState, use, useRef, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -179,7 +179,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       socket.off('userJoined', uploadBoard);
       socket.off('receiveBoard', receiveBoard);
     }
-  }, [board, roomId]);
+  }, [board, optimisticBoard, roomId]);
 
   const revealSpace = (space: Space) => {
     if (!board.started) {
@@ -285,7 +285,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     </span>
     <div className="flex flex-col w-fit h-fit select-none" onContextMenu={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onTouchEnd={(e) => e.preventDefault()}>
       {
-        board.spaces.map((row, index) => {
+        optimisticBoard.spaces.map((row, index) => {
           return <div className="flex flex-row" key={index}>
             { row.map(gridSpace) }
           </div>
