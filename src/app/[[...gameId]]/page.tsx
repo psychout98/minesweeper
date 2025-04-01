@@ -179,7 +179,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       socket.off('userJoined', uploadBoard);
       socket.off('receiveBoard', receiveBoard);
     }
-  }, [board, optimisticBoard, roomId]);
+  }, [board, roomId, updateOptimisticBoard]);
 
   const revealSpace = (space: Space) => {
     if (!board.started) {
