@@ -3,7 +3,7 @@
 import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved, Action, Event } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use, useCallback } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -80,7 +80,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     setBoard({ started: board.started, spaces, origin: socket.id });
   }
 
-  const triggerEvent = useCallback((event: Event, send: boolean = true) => {
+  function triggerEvent(event: Event, send: boolean = true) {
     if (event.action === Action.REVEAL) {
       revealSpace(event.space);
     }
@@ -90,11 +90,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     if (send) {
       socket.emit('uploadEvent', event, roomId);
     }
-  }, [roomId])
-
-  const uploadBoard = useCallback(() => {
-    socket.emit('uploadBoard', board.spaces, roomId);
-  }, [board, roomId]);
+  }
 
   useEffect(() => {
 
@@ -105,20 +101,6 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     function onDisconnect() {
       setIsConnected(false);
     }
-
-    function receiveBoard(incomingBoard: Space[][], socketId: string) {
-      setBoard({ started: true, spaces: incomingBoard, origin: socketId });
-    }
-
-    function receiveEvent(event: Event) {
-      triggerEvent(event, false);
-    }
-
-    socket.on('userJoined', uploadBoard);
-
-    socket.on('receiveBoard', receiveBoard);
-
-    socket.on('receiveEvent', receiveEvent);
 
     socket.on('connect', onConnect);
 
@@ -132,11 +114,34 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+    };
+  }, []);
+
+  useEffect(() => {
+
+    function uploadBoard() {
+      socket.emit('uploadBoard', board.spaces, roomId);
+    }
+
+    function receiveBoard(incomingBoard: Space[][], socketId: string) {
+      setBoard({ started: true, spaces: incomingBoard, origin: socketId });
+    }
+
+    function receiveEvent(event: Event) {
+      triggerEvent(event, false);
+    }
+    socket.on('userJoined', uploadBoard);
+
+    socket.on('receiveBoard', receiveBoard);
+
+    socket.on('receiveEvent', receiveEvent);
+
+    return () => {
       socket.off('userJoined', uploadBoard);
       socket.off('receiveBoard', receiveBoard);
       socket.off('receiveEvent', receiveEvent);
     };
-  }, []);
+  }, [board, roomId, setBoard, triggerEvent])
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
