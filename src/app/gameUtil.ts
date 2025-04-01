@@ -91,7 +91,7 @@ const getNearbyBombs = (board: Space[][], row: number, col: number): number => {
 }
 
 export const getFlags = (board: Space[][]) => {
-    return board.map(row => row.map(space => (space.value === -1 ? 1 : 0) + (space.flagged ? -1 : 0) as number)
+    return board.map(row => row.map(space => ((space.value === -1 ? 1 : 0) + (space.flagged ? -1 : 0)) as number)
     .reduce((partialSum, a) => partialSum + a, 0))
     .reduce((partialSum, a) => partialSum + a, 0);
 }
@@ -129,3 +129,19 @@ export const solved = (board: Space[][]): boolean => {
     }
     return true;
 }
+
+export function compareSpaces(space1: Space, space2: Space) {
+    if (!space1.hidden) {
+      return space1;
+    }
+    if (!space2.hidden) {
+      return space2;
+    }
+    if (space1.flagged) {
+      return space1;
+    }
+    if (space2.flagged) {
+      return space2;
+    }
+    return space1;
+  }

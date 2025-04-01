@@ -1,9 +1,9 @@
 "use client";
 
-import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved } from "../gameUtil";
+import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved, compareSpaces } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use, useRef } from "react";
+import { useEffect, useState, use, useRef, useCallback, useOptimistic } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -51,6 +51,19 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   const { gameId } = use(params);
   const [roomId, setRoomId] = useState<number>();
   const [board, setBoard] = useState<Board>({ started: false, spaces: getEmptyBoard(30, 16) });
+  const [optimisticBoard, updateOptimisticBoard] = useOptimistic(
+    board, 
+    (state, action: { incomingBoard: Space[][], socketId: string }) => (
+      { 
+        started: true, 
+        spaces: state.spaces.map((row, i) => row.map((space, j) => {
+          const incomingSpace = action.incomingBoard[i][j];
+          return compareSpaces(space, incomingSpace);
+        })), 
+        origin: action.socketId 
+      }
+    )
+  );
   const [flagging, setFlagging] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
   const [mice, setMice] = useState<{ [socketId: string]: Mouse }>({});
@@ -150,12 +163,12 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       socket.emit('uploadBoard', board.spaces, roomId);
     }
 
-    function receiveBoard(incomingBoard: Space[][], socketId: string) {
-      setBoard({ started: true, spaces: incomingBoard, origin: socketId });
-    }
-
     if (board.origin === socket.id && board.started) {
       uploadBoard();
+    }
+
+    function receiveBoard(incomingBoard: Space[][], socketId: string) {
+      updateOptimisticBoard({ incomingBoard, socketId });
     }
 
     socket.on('userJoined', uploadBoard);
@@ -204,7 +217,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
         flagSpace(selectedSpace.current);
         resetSelection();
       }
-    }, 400);
+    }, 1000);
     if (button === 2) {
       rightClick.current = true;
     }
