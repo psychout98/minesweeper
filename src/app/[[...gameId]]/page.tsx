@@ -3,7 +3,7 @@
 import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved, Action, Event } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use, useRef, useCallback } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
