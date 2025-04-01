@@ -3,7 +3,7 @@
 import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved, compareSpaces } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use, useRef, useCallback } from "react";
+import { useEffect, useState, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -144,12 +144,12 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     }
   }, [isConnected, gameId, router]);
 
-  const receiveBoard = useCallback((incomingBoard: Space[][], socketId: string) => {
-    setBoard({ started: true, spaces: board.spaces.map((row, i) => row.map((space, j) => {
+  function receiveBoard(incomingBoard: Space[][], socketId: string) {
+    setBoard(prev => ({ started: true, spaces: prev.spaces.map((row, i) => row.map((space, j) => {
       const incomingSpace = incomingBoard[i][j];
       return compareSpaces(space, incomingSpace);
-    })), origin: socketId });
-  }, [board]);
+    })), origin: socketId }));
+  };
 
   useEffect(() => {
 
@@ -169,7 +169,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       socket.off('userJoined', uploadBoard);
       socket.off('receiveBoard', receiveBoard);
     }
-  }, [board, roomId, receiveBoard]);
+  }, [board, roomId]);
 
   const revealSpace = (space: Space) => {
     if (!board.started) {
