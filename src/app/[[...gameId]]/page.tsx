@@ -1,9 +1,9 @@
 "use client";
 
-import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved, compareSpaces } from "../gameUtil";
+import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved, Action, Event } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use, useRef } from "react";
+import { useEffect, useState, use, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -54,9 +54,47 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   const [flagging, setFlagging] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
   const [mice, setMice] = useState<{ [socketId: string]: Mouse }>({});
-  const selectedSpace = useRef<Space>(null);
-  const rightClick = useRef<boolean>(false);
   const winner = solved(board.spaces);
+
+  const revealSpace = (space: Space) => {
+    if (!board.started) {
+      setBoard({ started: true, spaces: buildMinefield(board.spaces, 99, space), origin: socket.id });
+    } else {
+      if (space.value === -1) {
+        setBoard({ started: true, spaces: revealAll(board.spaces), origin: socket.id })
+      } else if (space.value === 0) {
+        const spaces = board.spaces;
+        cascadeReveal(spaces, space.y, space.x);
+        setBoard({ started: true, spaces, origin: socket.id });
+      } else {
+        const spaces = board.spaces;
+        spaces[space.y][space.x].hidden = false;
+        setBoard({ started: true, spaces, origin: socket.id });
+      }
+    }
+  }
+
+  const flagSpace = (space: Space) => {
+    const spaces = board.spaces;
+    spaces[space.y][space.x].flagged = !space.flagged;
+    setBoard({ started: board.started, spaces, origin: socket.id });
+  }
+
+  const triggerEvent = useCallback((event: Event, send: boolean = true) => {
+    if (event.action === Action.REVEAL) {
+      revealSpace(event.space);
+    }
+    if (event.action === Action.FLAG) {
+      flagSpace(event.space);
+    }
+    if (send) {
+      socket.emit('uploadEvent', event, roomId);
+    }
+  }, [roomId])
+
+  const uploadBoard = useCallback(() => {
+    socket.emit('uploadBoard', board.spaces, roomId);
+  }, [board, roomId]);
 
   useEffect(() => {
 
@@ -67,6 +105,20 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     function onDisconnect() {
       setIsConnected(false);
     }
+
+    function receiveBoard(incomingBoard: Space[][], socketId: string) {
+      setBoard({ started: true, spaces: incomingBoard, origin: socketId });
+    }
+
+    function receiveEvent(event: Event) {
+      triggerEvent(event, false);
+    }
+
+    socket.on('userJoined', uploadBoard);
+
+    socket.on('receiveBoard', receiveBoard);
+
+    socket.on('receiveEvent', receiveEvent);
 
     socket.on('connect', onConnect);
 
@@ -80,6 +132,9 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.off('userJoined', uploadBoard);
+      socket.off('receiveBoard', receiveBoard);
+      socket.off('receiveEvent', receiveEvent);
     };
   }, []);
 
@@ -144,91 +199,11 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     }
   }, [isConnected, gameId, router]);
 
-  function receiveBoard(incomingBoard: Space[][], socketId: string) {
-    setBoard(prev => ({ started: true, spaces: prev.spaces.map((row, i) => row.map((space, j) => {
-      const incomingSpace = incomingBoard[i][j];
-      return compareSpaces(space, incomingSpace);
-    })), origin: socketId }));
-  };
-
-  useEffect(() => {
-
-    function uploadBoard() {
-      socket.emit('uploadBoard', board.spaces, roomId);
-    }
-
-    if (board.origin === socket.id && board.started) {
-      uploadBoard();
-    }
-
-    socket.on('userJoined', uploadBoard);
-
-    socket.on('receiveBoard', receiveBoard);
-
-    return () => {
-      socket.off('userJoined', uploadBoard);
-      socket.off('receiveBoard', receiveBoard);
-    }
-  }, [board, roomId]);
-
-  const revealSpace = (space: Space) => {
-    if (!board.started) {
-      setBoard({ started: true, spaces: buildMinefield(board.spaces, 99, space), origin: socket.id });
-    } else {
-      if (space.value === -1) {
-        setBoard({ started: true, spaces: revealAll(board.spaces), origin: socket.id })
-      } else if (space.value === 0) {
-        const spaces = board.spaces;
-        cascadeReveal(spaces, space.y, space.x);
-        setBoard({ started: true, spaces, origin: socket.id });
-      } else {
-        const spaces = board.spaces;
-        spaces[space.y][space.x].hidden = false;
-        setBoard({ started: true, spaces, origin: socket.id });
-      }
-    }
-  }
-
-  const flagSpace = (space: Space) => {
-    const spaces = board.spaces;
-    spaces[space.y][space.x].flagged = !space.flagged;
-    setBoard({ started: board.started, spaces, origin: socket.id });
-  }
-
-  const resetSelection = () => {
-    selectedSpace.current = null;
-    rightClick.current = false;
-  }
-
-  const handleMouseDown = (space: Space, button: number) => {
-    selectedSpace.current = space;
-    setTimeout(() => {
-      if (selectedSpace.current != null) {
-        flagSpace(selectedSpace.current);
-        resetSelection();
-      }
-    }, 1000);
-    if (button === 2) {
-      rightClick.current = true;
-    }
-  }
-
-  const handleMouseUp = (space: Space) => {
-    if (space === selectedSpace.current) {
-      if (flagging || rightClick.current) {
-        flagSpace(space);
-      } else {
-        revealSpace(space);
-      }
-      resetSelection();
-    }
-  }
-
   const gridSpace = (space: Space) => {
     return space.hidden ? 
     <span className="flex w-[15px] h-[15px] lg:w-[30px] lg:h-[30px] bg-sky-200 border-2 lg:border-4 border-t-sky-100 border-l-sky-100 border-r-sky-400 border-b-sky-500 items-center justify-center"
-      onMouseDown={(e) => handleMouseDown(space, e.button)}
-      onMouseUp={() => handleMouseUp(space)}
+      onClick={() => triggerEvent({ space, action: flagging ? Action.FLAG : Action.REVEAL })}
+      onContextMenu={() => triggerEvent({ space, action: Action.FLAG })}
       key={space.x}>
         { space.flagged ? <FaFlag color="red"/> : undefined }
     </span>

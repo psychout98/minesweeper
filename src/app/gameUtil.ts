@@ -12,6 +12,16 @@ export interface Space {
     flagged: boolean
 }
 
+export enum Action {
+  REVEAL,
+  FLAG
+}
+
+export interface Event {
+    space: Space,
+    action: Action
+}
+
 export const buildMinefield = (spaces: Space[][], bombs: number, firstSpace: Space): Space[][] => {
     fillBoardWithBombs(spaces, bombs, firstSpace);
     numberBoard(spaces);
@@ -129,19 +139,3 @@ export const solved = (board: Space[][]): boolean => {
     }
     return true;
 }
-
-export function compareSpaces(space1: Space, space2: Space) {
-    if (!space1.hidden) {
-      return space1;
-    }
-    if (!space2.hidden) {
-      return space2;
-    }
-    if (space1.flagged) {
-      return space1;
-    }
-    if (space2.flagged) {
-      return space2;
-    }
-    return space1;
-  }
