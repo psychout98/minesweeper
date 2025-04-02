@@ -1,6 +1,6 @@
 "use client";
 
-import { Board, buildMinefield, cascadeReveal, getFlags, getEmptyBoard, revealAll, type Space, solved, Action, Event } from "../gameUtil";
+import { Board, getFlags, getEmptyBoard, Space, solved, Action, Event } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
 import { useEffect, useState, use } from "react";
@@ -56,40 +56,38 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   const [mice, setMice] = useState<{ [socketId: string]: Mouse }>({});
   const winner = solved(board.spaces);
 
-  const revealSpace = (space: Space) => {
-    if (!board.started) {
-      setBoard({ started: true, spaces: buildMinefield(board.spaces, 99, space), origin: socket.id });
-    } else {
-      if (space.value === -1) {
-        setBoard({ started: true, spaces: revealAll(board.spaces), origin: socket.id })
-      } else if (space.value === 0) {
-        const spaces = board.spaces;
-        cascadeReveal(spaces, space.y, space.x);
-        setBoard({ started: true, spaces, origin: socket.id });
-      } else {
-        const spaces = board.spaces;
-        spaces[space.y][space.x].hidden = false;
-        setBoard({ started: true, spaces, origin: socket.id });
-      }
-    }
-  }
+  // const revealSpace = (y: number, x: number) => {
+  //   if (!board.started) {
+  //     setBoard({ started: true, spaces: buildMinefield(board.spaces, 99, y, x) });
+  //   } else {
+  //     if (space.value === -1) {
+  //       setBoard({ started: true, spaces: revealAll(board.spaces) })
+  //     } else if (space.value === 0) {
+  //       const spaces = board.spaces;
+  //       cascadeReveal(spaces, space.y, space.x);
+  //       setBoard({ started: true, spaces });
+  //     } else {
+  //       const spaces = board.spaces;
+  //       spaces[space.y][space.x].hidden = false;
+  //       setBoard({ started: true, spaces });
+  //     }
+  //   }
+  // }
 
-  const flagSpace = (space: Space) => {
-    const spaces = board.spaces;
-    spaces[space.y][space.x].flagged = !space.flagged;
-    setBoard({ started: board.started, spaces, origin: socket.id });
-  }
+  // const flagSpace = (space: Space) => {
+  //   const spaces = board.spaces;
+  //   spaces[space.y][space.x].flagged = !spaces[space.y][space.x].flagged;
+  //   setBoard({ started: board.started, spaces });
+  // }
 
-  function triggerEvent(event: Event, send: boolean = true) {
-    if (event.action === Action.REVEAL) {
-      revealSpace(event.space);
-    }
-    if (event.action === Action.FLAG) {
-      flagSpace(event.space);
-    }
-    if (send) {
-      socket.emit('uploadEvent', event, roomId);
-    }
+  function triggerEvent(event: Event) {
+    socket.emit('uploadEvent', event);
+    // if (event.action === Action.REVEAL) {
+    //   revealSpace(event.y, event.x);
+    // }
+    // if (event.action === Action.FLAG) {
+    //   flagSpace(event.space);
+    // }
   }
 
   useEffect(() => {
@@ -102,9 +100,15 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       setIsConnected(false);
     }
 
+    function receiveBoard(incomingBoard: Board) {
+      setBoard(incomingBoard);
+    }
+
     socket.on('connect', onConnect);
 
     socket.on('disconnect', onDisconnect);
+
+    socket.on('receiveBoard', receiveBoard);
 
     socket.on("connect_error", (err) => {
       console.log(err.message);
@@ -114,34 +118,9 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.off('receiveBoard', receiveBoard);
     };
   }, []);
-
-  useEffect(() => {
-
-    function uploadBoard() {
-      socket.emit('uploadBoard', board.spaces, roomId);
-    }
-
-    function receiveBoard(incomingBoard: Space[][], socketId: string) {
-      setBoard({ started: true, spaces: incomingBoard, origin: socketId });
-    }
-
-    function receiveEvent(event: Event) {
-      triggerEvent(event, false);
-    }
-    socket.on('userJoined', uploadBoard);
-
-    socket.on('receiveBoard', receiveBoard);
-
-    socket.on('receiveEvent', receiveEvent);
-
-    return () => {
-      socket.off('userJoined', uploadBoard);
-      socket.off('receiveBoard', receiveBoard);
-      socket.off('receiveEvent', receiveEvent);
-    };
-  }, [board, roomId, setBoard, triggerEvent])
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -221,7 +200,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   }
 
   function newGame() {
-    setBoard({ started: false, spaces: getEmptyBoard(30, 16), origin: socket.id });
+    socket.emit('newGame');
   }
 
   return <div className="flex flex-col w-full h-full items-center justify-center mt-[50px]">
