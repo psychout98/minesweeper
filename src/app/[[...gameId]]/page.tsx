@@ -4,27 +4,12 @@ import { Board, getFlags, getEmptyBoard, Space, solved, Action, Event } from "..
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
 import { useEffect, useState, use } from "react";
-import { useRouter } from "next/navigation";
 import axios from "axios";
-
-import { io } from "socket.io-client";
-
-const URL = 'https://mineserver-57f48240957f.herokuapp.com/';
-// const URL = 'http://localhost:3001';
+import { socket } from "@/socket";
+import { URL } from "@/server";
 
 axios.defaults.baseURL = URL;
 axios.defaults.withCredentials = true;
-
-const socket = io(URL, {
-  path: '/socket',
-  reconnectionDelay: 1000,
-  reconnection: true,
-  reconnectionAttempts: 10,
-  agent: false,
-  upgrade: false,
-  rejectUnauthorized: false,
-  withCredentials: true
-});
 
 const COLORS = [
   "",
@@ -52,7 +37,6 @@ interface Game {
 
 export default function Home({ params }: { params: Promise<{ gameId?: string }> }) {
 
-  const router = useRouter();
   const { gameId } = use(params);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [game, setGame] = useState<Game>({ board: { started: false, spaces: getEmptyBoard(30, 16) }});
@@ -84,29 +68,28 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   //   setBoard({ started: board.started, spaces });
   // }
 
-  function startGame(game: Game) {
-    socket.emit('subscribe', game.gameId, game.playerId);
-    setGame(game);
-    setIsConnected(true);
-  }
+  useEffect(() => {
+    socket.connect();
+  }, []);
 
   useEffect(() => {
-    console.log(socket.id)
 
     function startNewGame() {
       axios.get<Game>('/newGame').then(({ data }) => {
-        router.replace(`/${data.gameId}`);
-        startGame(data);
+        socket.emit('subscribe', data.gameId, data.playerId);
+        setGame(data);
+        window.history.replaceState(data, '', `/${data.gameId}`);
       });
     }
   
     function joinGame(gameId: number) {
       axios.get<Game>(`/joinGame/${gameId}`).then(({ data }) => {
-        startGame(data);
+        setGame(data);
       });
     }
 
     function onConnect() {
+      setIsConnected(true);
       if (gameId) {
         const numericId = Number.parseInt(gameId);
         if (numericId && numericId > 999 && numericId < 10000) {
@@ -124,6 +107,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     }
 
     function receiveBoard(incomingBoard: Board) {
+      console.log('receiving board')
       setGame(g => ({
         ...g,
         board: incomingBoard
@@ -146,7 +130,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       socket.off('disconnect', onDisconnect);
       socket.off('receiveBoard', receiveBoard);
     };
-  }, [gameId, router]);
+  }, [gameId]);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -182,22 +166,20 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       });
     }
 
-    if (isConnected) {
-      socket.on('mouseMove', onMouseMove);
+    socket.on('mouseMove', onMouseMove);
 
-      socket.on('mouseLeave', onMouseLeave);
-    }
+    socket.on('mouseLeave', onMouseLeave);
 
     return () => {
       socket.off('mouseMove', onMouseMove);
 
       socket.off('mouseLeave', onMouseLeave);
     };
-  }, [mice, isConnected]);
+  }, [mice]);
 
-  function newGame() { axios.get(`/newGame/${game.playerId}`) }
+  function newGame() { axios.get(`/newGame/${game.playerId}`).then(({ data }) => setGame(data)) }
 
-  function triggerEvent(event: Event) { axios.post(`/event/${game.playerId}`, { event }) }
+  function triggerEvent(event: Event) { axios.post('/event', { event: { ...event, playerId: game.playerId }}).then(({ data }) => setGame(data)) }
 
   const gridSpace = (space: Space) => {
     return space.hidden ? 
