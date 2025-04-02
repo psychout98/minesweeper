@@ -3,7 +3,6 @@ import { URL } from "./server";
 
 export const socket = io(URL, {
   path: '/socket',
-  timeout: 1000,
   reconnectionDelay: 1000,
   reconnection: true,
   reconnectionAttempts: 10,
