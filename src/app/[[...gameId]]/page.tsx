@@ -3,7 +3,7 @@
 import { Board, getFlags, getEmptyBoard, Space, solved, Action, Event } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -39,7 +39,6 @@ const COLORS = [
 ]
 
 interface Mouse {
-  socketId: string,
   x: number,
   y: number,
   color: string
@@ -49,11 +48,12 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
 
   const router = useRouter();
   const { gameId } = use(params);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
   const [roomId, setRoomId] = useState<number>();
+  const [playerId, setPlayerId] = useState<number>();
   const [board, setBoard] = useState<Board>({ started: false, spaces: getEmptyBoard(30, 16) });
   const [flagging, setFlagging] = useState<boolean>(false);
-  const [isConnected, setIsConnected] = useState<boolean>(socket.connected);
-  const [mice, setMice] = useState<{ [socketId: string]: Mouse }>({});
+  const [mice, setMice] = useState<{ [playerId: string]: Mouse }>({});
   const winner = solved(board.spaces);
 
   // const revealSpace = (y: number, x: number) => {
@@ -80,20 +80,47 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   //   setBoard({ started: board.started, spaces });
   // }
 
-  function triggerEvent(event: Event) {
-    socket.emit('uploadEvent', event);
-    // if (event.action === Action.REVEAL) {
-    //   revealSpace(event.y, event.x);
-    // }
-    // if (event.action === Action.FLAG) {
-    //   flagSpace(event.space);
-    // }
+  const newGame = useCallback(() => axios.get(`/newGame/${playerId}`), [playerId]);
+
+  const triggerEvent = useCallback((event: Event) => axios.post(`/event/${playerId}`, { event }), [playerId]);
+
+  function setGame({ gameId, playerId, board }: { gameId: number, playerId: number, board: Board }) {
+    socket.emit('subscribe', gameId, playerId);
+    setRoomId(gameId);
+    setPlayerId(playerId);
+    setBoard(board);
+    setIsConnected(true);
   }
 
   useEffect(() => {
+    console.log(socket.id)
+
+    function startNewGame() {
+      axios.get('/newGame').then(({ data }) => {
+        router.replace(`/${data.gameId}`);
+        setGame(data);
+      });
+    }
+  
+    function joinGame(gameId: number) {
+      axios.get(`/joinGame/${gameId}`).then(({ data }) => {
+        setGame(data);
+      });
+    }
 
     function onConnect() {
-      setIsConnected(true);
+      console.log(socket.connected);
+      console.log(gameId);
+      if (gameId) {
+        const numericId = Number.parseInt(gameId);
+        if (numericId && numericId > 999 && numericId < 10000) {
+          joinGame(numericId);
+        } else {
+          startNewGame();
+        }
+      } else {
+        startNewGame();
+      }
     }
 
     function onDisconnect() {
@@ -120,68 +147,54 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       socket.off('disconnect', onDisconnect);
       socket.off('receiveBoard', receiveBoard);
     };
-  }, []);
+  }, [gameId, router]);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
-      socket.emit("mouseMove", { x: event.x, y: event.y }, roomId);
+      socket.emit("mouseMove", event.x, event.y);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-  }, [roomId]);
+    if (isConnected) {
+      window.addEventListener('mousemove', handleMouseMove);
+    }
+
+    return () => {
+      window.removeEventListener('mouseMove', handleMouseMove as EventListener);
+    };
+  }, [roomId, isConnected]);
 
   useEffect(() => {
 
-    function onMouseMove(mouseData: Mouse) {
-      const nextMice = { ...mice };
-      const mouse = nextMice[mouseData.socketId];
-      if (mouse) {
-        mouse.x = mouseData.x;
-        mouse.y = mouseData.y;
-      } else {
-        nextMice[mouseData.socketId] = { ...mouseData, color: '#' + Math.floor(Math.random()*16777215).toString(16) };
-      }
-      setMice(nextMice);
+    function onMouseMove(x: number, y: number, playerId: string) {
+      setMice(m => ({
+        ...m,
+        [playerId]: {
+          x,
+          y,
+          color: m[playerId]?.color || '#' + Math.floor(Math.random()*16777215).toString(16)
+        }
+      }));
     }
 
-    function onMouseLeave(socketId: string) {
-      const nextMice = { ...mice };
-      delete nextMice[socketId];
-      setMice(nextMice);
+    function onMouseLeave(playerId: string) {
+      setMice(m => {
+        delete m[playerId];
+        return m;
+      });
     }
 
-    socket.on('mouseMove', onMouseMove);
+    if (isConnected) {
+      socket.on('mouseMove', onMouseMove);
 
-    socket.on('mouseLeave', onMouseLeave);
+      socket.on('mouseLeave', onMouseLeave);
+    }
 
     return () => {
       socket.off('mouseMove', onMouseMove);
 
       socket.off('mouseLeave', onMouseLeave);
     };
-  }, [mice]);
-
-  useEffect(() => {
-    function navigateToRandom() {
-      axios.get('/randomId').then(({ data }) => {
-        router.push(`/${data}`);
-      });
-    }
-
-    if (isConnected) {
-      if (gameId) {
-        const numericId = Number.parseInt(gameId);
-        if (numericId && numericId > 999 && numericId < 10000) {
-          socket.emit('subscribe', [numericId]);
-          setRoomId(numericId);
-        } else {
-          navigateToRandom();
-        }
-      } else {
-        navigateToRandom();
-      }
-    }
-  }, [isConnected, gameId, router]);
+  }, [mice, isConnected]);
 
   const gridSpace = (space: Space) => {
     return space.hidden ? 
@@ -197,10 +210,6 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
         space.value === 0 ? "" : space.value === -1 ? <FaBomb color="black"/> : space.value
       }
     </span>
-  }
-
-  function newGame() {
-    socket.emit('newGame');
   }
 
   return <div className="flex flex-col w-full h-full items-center justify-center mt-[50px]">
@@ -233,8 +242,8 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       </span>
     </div>
     {
-      Object.values(mice).map((mouse: Mouse) => {
-        return <span className={`fixed w-[15px] h-[15px]`} style={{ top: mouse.y, left: mouse.x }} key={mouse.socketId}>
+      Object.entries(mice).map(([playerId, mouse]: [string, Mouse]) => {
+        return <span className={`fixed w-[15px] h-[15px]`} style={{ top: mouse.y, left: mouse.x }} key={playerId}>
           <FaMousePointer color={mouse.color}/>
         </span>
       })
