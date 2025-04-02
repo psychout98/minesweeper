@@ -44,17 +44,21 @@ interface Mouse {
   color: string
 }
 
+interface Game {
+  gameId?: number;
+  playerId?: number;
+  board: Board;
+}
+
 export default function Home({ params }: { params: Promise<{ gameId?: string }> }) {
 
   const router = useRouter();
   const { gameId } = use(params);
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [roomId, setRoomId] = useState<number>();
-  const [playerId, setPlayerId] = useState<number>();
-  const [board, setBoard] = useState<Board>({ started: false, spaces: getEmptyBoard(30, 16) });
+  const [game, setGame] = useState<Game>({ board: { started: false, spaces: getEmptyBoard(30, 16) }});
   const [flagging, setFlagging] = useState<boolean>(false);
   const [mice, setMice] = useState<{ [playerId: string]: Mouse }>({});
-  const winner = solved(board.spaces);
+  const winner = solved(game.board.spaces);
 
   // const revealSpace = (y: number, x: number) => {
   //   if (!board.started) {
@@ -80,11 +84,9 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   //   setBoard({ started: board.started, spaces });
   // }
 
-  function setGame({ gameId, playerId, board }: { gameId: number, playerId: number, board: Board }) {
-    socket.emit('subscribe', gameId, playerId);
-    setRoomId(gameId);
-    setPlayerId(playerId);
-    setBoard(board);
+  function startGame(game: Game) {
+    socket.emit('subscribe', game.gameId, game.playerId);
+    setGame(game);
     setIsConnected(true);
   }
 
@@ -92,21 +94,19 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     console.log(socket.id)
 
     function startNewGame() {
-      axios.get('/newGame').then(({ data }) => {
+      axios.get<Game>('/newGame').then(({ data }) => {
         router.replace(`/${data.gameId}`);
-        setGame(data);
+        startGame(data);
       });
     }
   
     function joinGame(gameId: number) {
-      axios.get(`/joinGame/${gameId}`).then(({ data }) => {
-        setGame(data);
+      axios.get<Game>(`/joinGame/${gameId}`).then(({ data }) => {
+        startGame(data);
       });
     }
 
     function onConnect() {
-      console.log(socket.connected);
-      console.log(gameId);
       if (gameId) {
         const numericId = Number.parseInt(gameId);
         if (numericId && numericId > 999 && numericId < 10000) {
@@ -124,7 +124,10 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     }
 
     function receiveBoard(incomingBoard: Board) {
-      setBoard(incomingBoard);
+      setGame(g => ({
+        ...g,
+        board: incomingBoard
+      }));
     }
 
     socket.on('connect', onConnect);
@@ -157,7 +160,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     return () => {
       window.removeEventListener('mouseMove', handleMouseMove as EventListener);
     };
-  }, [roomId, isConnected]);
+  }, [isConnected]);
 
   useEffect(() => {
 
@@ -192,9 +195,9 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     };
   }, [mice, isConnected]);
 
-  function newGame() { axios.get(`/newGame/${playerId}`) }
+  function newGame() { axios.get(`/newGame/${game.playerId}`) }
 
-  function triggerEvent(event: Event) { axios.post(`/event/${playerId}`, { event }) }
+  function triggerEvent(event: Event) { axios.post(`/event/${game.playerId}`, { event }) }
 
   const gridSpace = (space: Space) => {
     return space.hidden ? 
@@ -218,7 +221,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     </span>
     <div className="flex flex-col w-fit h-fit select-none" onContextMenu={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onTouchEnd={(e) => e.preventDefault()}>
       {
-        board.spaces.map((row, index) => {
+        game.board.spaces.map((row, index) => {
           return <div className="flex flex-row" key={index}>
             { row.map(gridSpace) }
           </div>
@@ -226,7 +229,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       }
     </div>
     <div className="flex flex-row m-3 gap-3">
-      <span className="flex w-[50px] h-[50px] text-3xl text-align-center justify-center items-center">{ getFlags(board.spaces) }</span>
+      <span className="flex w-[50px] h-[50px] text-3xl text-align-center justify-center items-center">{ getFlags(game.board.spaces) }</span>
       <span className="flex w-[50px] h-[50px] bg-slate-200 border-4 border-t-slate-100 border-l-slate-100 border-r-slate-400 border-b-slate-500 items-center justify-center"
         onClick={() => setFlagging(!flagging)}>
         <FaFlag color={flagging ? "red" : "gray"}/>
