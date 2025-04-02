@@ -3,7 +3,7 @@
 import { Board, getFlags, getEmptyBoard, Space, solved, Action, Event } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use, useCallback } from "react";
+import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
@@ -79,10 +79,6 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   //   spaces[space.y][space.x].flagged = !spaces[space.y][space.x].flagged;
   //   setBoard({ started: board.started, spaces });
   // }
-
-  const newGame = useCallback(() => axios.get(`/newGame/${playerId}`), [playerId]);
-
-  const triggerEvent = useCallback((event: Event) => axios.post(`/event/${playerId}`, { event }), [playerId]);
 
   function setGame({ gameId, playerId, board }: { gameId: number, playerId: number, board: Board }) {
     socket.emit('subscribe', gameId, playerId);
@@ -195,6 +191,10 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       socket.off('mouseLeave', onMouseLeave);
     };
   }, [mice, isConnected]);
+
+  function newGame() { axios.get(`/newGame/${playerId}`) }
+
+  function triggerEvent(event: Event) { axios.post(`/event/${playerId}`, { event }) }
 
   const gridSpace = (space: Space) => {
     return space.hidden ? 
