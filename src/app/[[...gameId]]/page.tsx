@@ -159,10 +159,12 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     function receiveBoard() {
       axios.get<Board>(`/board/${game.gameId}`)
       .then(({ data }) => {
-        setGame(g => ({
-          ...g,
-          board: data
-        }));
+        startTransition(() => {
+          setGame(g => ({
+            ...g,
+            board: data
+          }));
+        });
       });
     }
 
