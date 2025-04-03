@@ -106,15 +106,9 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       setIsConnected(false);
     }
 
-    function receiveBoard() {
-      console.log('receive board');
-    }
-
     socket.on('connect', onConnect);
 
     socket.on('disconnect', onDisconnect);
-
-    socket.on('receiveBoard', receiveBoard);
 
     socket.on("connect_error", (err) => {
       console.log(err.message);
@@ -124,7 +118,6 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     return () => {
       socket.off('connect', onConnect);
       socket.off('disconnect', onDisconnect);
-      socket.off('receiveBoard', receiveBoard);
     };
   }, [gameId]);
 
@@ -173,9 +166,30 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     };
   }, [mice]);
 
+  useEffect(() => {
+
+    function receiveBoard() {
+      axios.get<Board>(`/board/${game.gameId}`)
+      .then(({ data }) => {
+        setGame(g => ({
+          ...g,
+          data
+        }));
+      });
+    }
+
+    if (game.gameId && game.playerId) {
+      socket.on('receiveBoard', receiveBoard);
+    }
+
+    return () => {
+      socket.off('receiveBoard', receiveBoard);
+    };
+  }, [game]);
+
   function newGame() { axios.get(`/newGame/${game.playerId}`).then(({ data }) => setGame(data)) }
 
-  function triggerEvent(event: Event) { axios.post('/event', { event: { ...event, playerId: game.playerId }}).then(({ data }) => setGame(data)) }
+  function triggerEvent(event: Event) { axios.post('/event', { event: { ...event, playerId: game.playerId }}) }
 
   const gridSpace = (space: Space) => {
     return space.hidden ? 
