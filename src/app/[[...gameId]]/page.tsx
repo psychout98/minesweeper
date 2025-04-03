@@ -1,9 +1,9 @@
 "use client";
 
-import { Board, getFlags, getEmptyBoard, Space, solved, Action, Event } from "../gameUtil";
+import { Board, getFlags, getEmptyBoard, Space, solved, Action, Event, actionEvent } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useOptimistic, startTransition } from "react";
 import axios from "axios";
 import { socket } from "@/socket";
 import { URL } from "@/server";
@@ -40,33 +40,20 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   const { gameId } = use(params);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [game, setGame] = useState<Game>({ board: { started: false, spaces: getEmptyBoard(30, 16) }});
+  const [optimisticGame, addOptimisticEvent] = useOptimistic(
+    game,
+    (state, event: Event) => {
+      const board = { ...state.board };
+      actionEvent(event, board);
+      return {
+        ...state,
+        board
+      };
+    }
+  );
   const [flagging, setFlagging] = useState<boolean>(false);
   const [mice, setMice] = useState<{ [playerId: string]: Mouse }>({});
   const winner = solved(game.board.spaces);
-
-  // const revealSpace = (y: number, x: number) => {
-  //   if (!board.started) {
-  //     setBoard({ started: true, spaces: buildMinefield(board.spaces, 99, y, x) });
-  //   } else {
-  //     if (space.value === -1) {
-  //       setBoard({ started: true, spaces: revealAll(board.spaces) })
-  //     } else if (space.value === 0) {
-  //       const spaces = board.spaces;
-  //       cascadeReveal(spaces, space.y, space.x);
-  //       setBoard({ started: true, spaces });
-  //     } else {
-  //       const spaces = board.spaces;
-  //       spaces[space.y][space.x].hidden = false;
-  //       setBoard({ started: true, spaces });
-  //     }
-  //   }
-  // }
-
-  // const flagSpace = (space: Space) => {
-  //   const spaces = board.spaces;
-  //   spaces[space.y][space.x].flagged = !spaces[space.y][space.x].flagged;
-  //   setBoard({ started: board.started, spaces });
-  // }
 
   useEffect(() => {
     socket.connect();
@@ -89,6 +76,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     }
 
     function onConnect() {
+      console.log('connect', socket.id);
       setIsConnected(true);
       if (gameId) {
         const numericId = Number.parseInt(gameId);
@@ -173,7 +161,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       .then(({ data }) => {
         setGame(g => ({
           ...g,
-          data
+          board: data
         }));
       });
     }
@@ -189,7 +177,12 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
 
   function newGame() { axios.get(`/newGame/${game.playerId}`).then(({ data }) => setGame(data)) }
 
-  function triggerEvent(event: Event) { axios.post('/event', { event: { ...event, playerId: game.playerId }}) }
+  function triggerEvent(event: Event) {
+    startTransition(() => {
+      addOptimisticEvent(event);
+    });
+    axios.post('/event', { event: { ...event, playerId: game.playerId }});
+  }
 
   const gridSpace = (space: Space) => {
     return space.hidden ? 
@@ -213,7 +206,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     </span>
     <div className="flex flex-col w-fit h-fit select-none" onContextMenu={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onTouchEnd={(e) => e.preventDefault()}>
       {
-        game.board.spaces.map((row, index) => {
+        optimisticGame.board.spaces.map((row, index) => {
           return <div className="flex flex-row" key={index}>
             { row.map(gridSpace) }
           </div>
@@ -221,7 +214,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       }
     </div>
     <div className="flex flex-row m-3 gap-3">
-      <span className="flex w-[50px] h-[50px] text-3xl text-align-center justify-center items-center">{ getFlags(game.board.spaces) }</span>
+      <span className="flex w-[50px] h-[50px] text-3xl text-align-center justify-center items-center">{ getFlags(optimisticGame.board.spaces) }</span>
       <span className="flex w-[50px] h-[50px] bg-slate-200 border-4 border-t-slate-100 border-l-slate-100 border-r-slate-400 border-b-slate-500 items-center justify-center"
         onClick={() => setFlagging(!flagging)}>
         <FaFlag color={flagging ? "red" : "gray"}/>
