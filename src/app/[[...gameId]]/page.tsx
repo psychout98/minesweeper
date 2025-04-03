@@ -106,12 +106,8 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
       setIsConnected(false);
     }
 
-    function receiveBoard(incomingBoard: Board) {
-      console.log('receiving board')
-      setGame(g => ({
-        ...g,
-        board: incomingBoard
-      }));
+    function receiveBoard() {
+      console.log('receive board');
     }
 
     socket.on('connect', onConnect);
