@@ -10,5 +10,5 @@ export const socket = io(URL, {
   upgrade: false,
   rejectUnauthorized: false,
   autoConnect: false,
-//   withCredentials: true
+  withCredentials: true
 });

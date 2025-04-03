@@ -9,7 +9,7 @@ import { socket } from "@/socket";
 import { URL } from "@/server";
 
 axios.defaults.baseURL = URL;
-// axios.defaults.withCredentials = true;
+axios.defaults.withCredentials = true;
 
 const COLORS = [
   "",
@@ -155,14 +155,12 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   }, [mice]);
 
   useEffect(() => {
-    console.log(game.board.spaces);
 
-    function receiveBoard() {
-      axios.get<Board>(`/board/${game.gameId}`)
-      .then(({ data }) => {
+    function receiveBoard(board: Board) {
+      startTransition(() => {
         setGame(g => ({
           ...g,
-          board: data
+          board
         }));
       });
     }
