@@ -200,12 +200,12 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     </span>
     <div className="flex flex-col w-fit h-fit select-none" onContextMenu={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onTouchEnd={(e) => e.preventDefault()}>
       {
-        game.gameId && game.playerId ||
+        game.gameId && game.playerId ?
         game.board.spaces.map((row, index) => {
           return <div className="flex flex-row" key={index}>
             { row.map(gridSpace) }
           </div>
-        })
+        }): null
       }
     </div>
     <div className="flex flex-row m-3 gap-3">
