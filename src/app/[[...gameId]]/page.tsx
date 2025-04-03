@@ -3,13 +3,13 @@
 import { Board, getFlags, getEmptyBoard, Space, solved, Action, Event, actionEvent } from "../gameUtil";
 import { FaFlag, FaBomb, FaMousePointer } from "react-icons/fa";
 import { BsEmojiSunglasses, BsEmojiSmile } from "react-icons/bs";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useOptimistic, startTransition } from "react";
 import axios from "axios";
 import { socket } from "@/socket";
 import { URL } from "@/server";
 
 axios.defaults.baseURL = URL;
-axios.defaults.withCredentials = true;
+// axios.defaults.withCredentials = true;
 
 const COLORS = [
   "",
@@ -40,9 +40,20 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   const { gameId } = use(params);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [game, setGame] = useState<Game>({ board: { started: false, spaces: getEmptyBoard(30, 16) }});
+  const [optimisticGame, addOptimisticEvent] = useOptimistic(
+    game,
+    (state, event: Event) => {
+      const board = { ...state.board };
+      actionEvent(event, board);
+      return {
+        ...state,
+        board
+      };
+    }
+  );
   const [flagging, setFlagging] = useState<boolean>(false);
   const [mice, setMice] = useState<{ [playerId: string]: Mouse }>({});
-  const winner = solved(game.board.spaces);
+  const winner = solved(optimisticGame.board.spaces);
 
   useEffect(() => {
     socket.connect();
@@ -144,6 +155,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   }, [mice]);
 
   useEffect(() => {
+    console.log(game.board.spaces);
 
     function receiveBoard() {
       axios.get<Board>(`/board/${game.gameId}`)
@@ -167,14 +179,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   function newGame() { axios.get(`/newGame/${game.playerId}`).then(({ data }) => setGame(data)) }
 
   function triggerEvent(event: Event) {
-    setGame(g => {
-      const board = g.board;
-      actionEvent(event, board);
-      return {
-        ...g,
-        board
-      };
-    });
+    startTransition(() => addOptimisticEvent(event));
     axios.post('/event', { event: { ...event, playerId: game.playerId }});
   }
 
@@ -194,22 +199,22 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
     </span>
   }
 
-  return <div className="flex flex-col w-full h-full items-center justify-center mt-[50px]">
+  return game.gameId && game.playerId ?
+  (<div className="flex flex-col w-full h-full items-center justify-center mt-[50px]">
     <span className="center h-[50px] t-[50px] text-5xl text-align-center select-none">
       {winner ? "You are the big fat winner!" : ""}
     </span>
     <div className="flex flex-col w-fit h-fit select-none" onContextMenu={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onTouchEnd={(e) => e.preventDefault()}>
       {
-        game.gameId && game.playerId ?
-        game.board.spaces.map((row, index) => {
+        optimisticGame.board.spaces.map((row, index) => {
           return <div className="flex flex-row" key={index}>
             { row.map(gridSpace) }
           </div>
-        }): null
+        })
       }
     </div>
     <div className="flex flex-row m-3 gap-3">
-      <span className="flex w-[50px] h-[50px] text-3xl text-align-center justify-center items-center">{ getFlags(game.board.spaces) }</span>
+      <span className="flex w-[50px] h-[50px] text-3xl text-align-center justify-center items-center">{ getFlags(optimisticGame.board.spaces) }</span>
       <span className="flex w-[50px] h-[50px] bg-slate-200 border-4 border-t-slate-100 border-l-slate-100 border-r-slate-400 border-b-slate-500 items-center justify-center"
         onClick={() => setFlagging(!flagging)}>
         <FaFlag color={flagging ? "red" : "gray"}/>
@@ -231,5 +236,5 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
         </span>
       })
     }
-  </div>
+  </div>) : null
 }
