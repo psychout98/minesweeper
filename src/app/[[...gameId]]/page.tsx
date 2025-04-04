@@ -126,15 +126,15 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
 
   useEffect(() => {
 
-    function onMouseMove(mouseData: Mouse, playerId: string) {
+    function onMouseMove(x: number, y: number, playerId: string) {
       startTransition(() => {
         const nextMice = { ...mice };
         const mouse = nextMice[playerId];
         if (mouse) {
-          mouse.x = mouseData.x;
-          mouse.y = mouseData.y;
+          mouse.x = x;
+          mouse.y = y;
         } else {
-          nextMice[playerId] = { ...mouseData, color: '#' + Math.floor(Math.random()*16777215).toString(16) };
+          nextMice[playerId] = { x, y, color: '#' + Math.floor(Math.random()*16777215).toString(16) };
         }
         setMice(nextMice);
       });
