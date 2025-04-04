@@ -71,6 +71,7 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
   
     function joinGame(gameId: number) {
       axios.get<Game>(`/joinGame/${gameId}`).then(({ data }) => {
+        socket.emit('subscribe', gameId, data.playerId);
         setGame(data);
       });
     }
@@ -125,22 +126,24 @@ export default function Home({ params }: { params: Promise<{ gameId?: string }> 
 
   useEffect(() => {
 
-    function onMouseMove(x: number, y: number, playerId: string) {
-      setMice(m => ({
-        ...m,
-        [playerId]: {
-          x,
-          y,
-          color: m[playerId]?.color || '#' + Math.floor(Math.random()*16777215).toString(16)
+    function onMouseMove(mouseData: Mouse, playerId: string) {
+      startTransition(() => {
+        const nextMice = { ...mice };
+        const mouse = nextMice[playerId];
+        if (mouse) {
+          mouse.x = mouseData.x;
+          mouse.y = mouseData.y;
+        } else {
+          nextMice[playerId] = { ...mouseData, color: '#' + Math.floor(Math.random()*16777215).toString(16) };
         }
-      }));
+        setMice(nextMice);
+      });
     }
 
-    function onMouseLeave(playerId: string) {
-      setMice(m => {
-        delete m[playerId];
-        return m;
-      });
+    function onMouseLeave(socketId: string) {
+      const nextMice = { ...mice };
+      delete nextMice[socketId];
+      setMice(nextMice);
     }
 
     socket.on('mouseMove', onMouseMove);
