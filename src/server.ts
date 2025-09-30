@@ -1,2 +1,2 @@
-export const URL = 'https://mineserver-57f48240957f.herokuapp.com/';
+export const URL = 'https://minesweeper-server-1095821408958.us-east4.run.app';
 // export const URL = 'http://localhost:3001';
